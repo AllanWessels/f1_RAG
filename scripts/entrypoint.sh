@@ -25,6 +25,21 @@ print(f"[entrypoint] Qdrant never came up at {host}:{port}", flush=True)
 raise SystemExit(1)
 PY
 
+# Fallback ETLs: if the image was built without a populated data/ dir,
+# run the ingestion locally on first start. Each ETL is idempotent.
+if [ ! -f /app/data/f1_stats.sqlite ]; then
+    echo "[entrypoint] data/f1_stats.sqlite missing — running stats ETL"
+    python -m ingestion.stats_etl || echo "[entrypoint] stats_etl failed (continuing)"
+fi
+if [ ! -f /app/data/wikipedia_races.jsonl ]; then
+    echo "[entrypoint] data/wikipedia_races.jsonl missing — running Wikipedia ETL"
+    python -m ingestion.wikipedia_etl || echo "[entrypoint] wikipedia_etl failed (continuing)"
+fi
+if [ ! -f /app/data/fia_regulations.jsonl ]; then
+    echo "[entrypoint] data/fia_regulations.jsonl missing — running FIA regs ETL"
+    python -m ingestion.regulations_etl || echo "[entrypoint] regulations_etl failed (continuing)"
+fi
+
 echo "[entrypoint] building Qdrant indexes (idempotent; skips populated collections) ..."
 python -m ingestion.build_indexes || {
     echo "[entrypoint] index build failed; continuing anyway so /health stays up"

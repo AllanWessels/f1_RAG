@@ -19,23 +19,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml ./
-RUN pip install --upgrade pip && pip install -e .
-
-# Copy source; ingestion runs at build time and writes to /build/data
+COPY pyproject.toml README.md ./
 COPY ingestion ./ingestion
 COPY app ./app
 COPY eval ./eval
 
+RUN pip install --upgrade pip && pip install -e .
 RUN mkdir -p /build/data
 
-# Ingestion ETLs — bake the three corpora into the image so the runtime
-# container starts with stats SQLite, Wikipedia JSONL, and FIA PDF chunks
-# already on disk. Qdrant indexing is deferred to container start
-# (Qdrant isn't running during image build).
-RUN python -m ingestion.stats_etl
-RUN python -m ingestion.wikipedia_etl
-RUN python -m ingestion.regulations_etl
+# Bring the three corpora into the image. Two paths:
+#   1. If `data/` is populated locally (recommended; run `make ingest` first),
+#      it is copied in directly.
+#   2. If `data/` is empty, the entrypoint will lazily run the ETLs against
+#      the live APIs on container start.
+# We avoid running ETLs inside `docker build` because the Jolpica and FIA
+# rate limits are unreliable for ~3000 sequential requests under buildkit's
+# network namespace; the previous design hit RetryError on Jolpica 429s.
+COPY data ./data
 
 
 #############################
