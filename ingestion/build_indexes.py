@@ -36,16 +36,14 @@ from qdrant_client.models import (
 )
 from tqdm import tqdm
 
+from app.embedding import DENSE_DIM, Embedders
+
 logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 STATS_DB = DATA_DIR / "f1_stats.sqlite"
 WIKIPEDIA_JSONL = DATA_DIR / "wikipedia_races.jsonl"
 REGULATIONS_JSONL = DATA_DIR / "fia_regulations.jsonl"
-
-DENSE_MODEL = "BAAI/bge-large-en-v1.5"
-DENSE_DIM = 1024
-SPARSE_MODEL = "Qdrant/bm25"
 
 COLLECTIONS = ("stats_meta", "narratives", "regulations")
 DEFAULT_BATCH_SIZE = 64
@@ -159,35 +157,6 @@ def load_jsonl_chunks(
 
 
 # ---------------------------------------------------------------------------
-# Embedding models (lazy-loaded)
-# ---------------------------------------------------------------------------
-
-
-class Embedders:
-    """Lazy holders so unit tests can mock without loading 1 GB+ of weights."""
-
-    def __init__(self) -> None:
-        self._dense: Any | None = None
-        self._sparse: Any | None = None
-
-    def dense(self) -> Any:
-        if self._dense is None:
-            from sentence_transformers import SentenceTransformer
-
-            logger.info("Loading dense model %s", DENSE_MODEL)
-            self._dense = SentenceTransformer(DENSE_MODEL)
-        return self._dense
-
-    def sparse(self) -> Any:
-        if self._sparse is None:
-            from fastembed import SparseTextEmbedding
-
-            logger.info("Loading sparse model %s", SPARSE_MODEL)
-            self._sparse = SparseTextEmbedding(model_name=SPARSE_MODEL)
-        return self._sparse
-
-
-# ---------------------------------------------------------------------------
 # Qdrant
 # ---------------------------------------------------------------------------
 
@@ -246,7 +215,12 @@ def upsert_chunks(
         sparse_embeddings = list(embedders.sparse().embed(texts))
         points = []
         for chunk, dense, sparse in zip(batch, dense_vecs, sparse_embeddings, strict=True):
-            payload = {**chunk.payload, "source": chunk.source, "chunk_id": chunk.chunk_id}
+            payload = {
+                **chunk.payload,
+                "source": chunk.source,
+                "chunk_id": chunk.chunk_id,
+                "text": chunk.text,
+            }
             points.append(
                 PointStruct(
                     id=_point_id(chunk.chunk_id),

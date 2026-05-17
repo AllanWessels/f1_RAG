@@ -217,6 +217,7 @@ class TestUpsert:
             assert len(p.vector["dense"]) == 1024
             assert p.payload["source"] == "narratives"
             assert "chunk_id" in p.payload
+            assert p.payload["text"] in {"hello", "world"}
 
 
 class TestBuildOrchestration:
