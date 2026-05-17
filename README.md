@@ -99,8 +99,19 @@ tests/                     # 283 unit tests across all of the above
 - `ANTHROPIC_API_KEY` — required (router uses Haiku 4.5, synth uses Sonnet 4.6).
 - `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` — required for tracing; the compose bootstraps a project with these on first start.
 - `API_PORT` / `QDRANT_PORT` / `LANGFUSE_PORT` — port overrides if 8000/6333/3000 are taken.
+- `F1RAG_DEVICE` — force `cpu` or `cuda`. By default the embedder/reranker auto-detect CUDA and fall back to CPU.
 
 Tracing is a transparent no-op if the Langfuse keys are unset, so unit tests and local dev runs don't need Langfuse.
+
+## GPU acceleration
+
+The host venv auto-uses CUDA if `torch.cuda.is_available()` is true. Indexing on a single NVIDIA RTX 5080 finishes ~4k chunks in ~3 minutes (≈50× faster than CPU). To rebuild the Qdrant indexes from the host (uses GPU, hits the dockerized Qdrant):
+
+```bash
+QDRANT_URL=http://localhost:6333 make index    # or: ... python -m ingestion.build_indexes --force
+```
+
+For GPU **inside** docker compose, you also need [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/) on the host and CUDA-enabled PyTorch in the image; the default Dockerfile uses CPU torch so the in-container indexing path is slow. The recommended workflow is: bring up the compose stack, then run `make index` from the host once for a fast cold start.
 
 ## License
 

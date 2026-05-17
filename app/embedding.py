@@ -10,6 +10,7 @@ Models load on first access so unit tests can stub them without touching weights
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,21 @@ DENSE_MODEL = "BAAI/bge-large-en-v1.5"
 DENSE_DIM = 1024
 SPARSE_MODEL = "Qdrant/bm25"
 RERANKER_MODEL = "BAAI/bge-reranker-v2-m3"
+
+
+def _pick_device() -> str:
+    """Honor F1RAG_DEVICE, else use CUDA if available, else CPU."""
+    forced = os.environ.get("F1RAG_DEVICE")
+    if forced:
+        return forced
+    try:
+        import torch  # type: ignore[import-not-found]
+
+        if torch.cuda.is_available():
+            return "cuda"
+    except ImportError:
+        pass
+    return "cpu"
 
 
 class Embedders:
@@ -31,8 +47,9 @@ class Embedders:
         if self._dense is None:
             from sentence_transformers import SentenceTransformer
 
-            logger.info("Loading dense model %s", DENSE_MODEL)
-            self._dense = SentenceTransformer(DENSE_MODEL)
+            device = _pick_device()
+            logger.info("Loading dense model %s on device=%s", DENSE_MODEL, device)
+            self._dense = SentenceTransformer(DENSE_MODEL, device=device)
         return self._dense
 
     def sparse(self) -> Any:
@@ -64,8 +81,10 @@ class Reranker:
         if self._model is None:
             from FlagEmbedding import FlagReranker
 
-            logger.info("Loading reranker %s", RERANKER_MODEL)
-            self._model = FlagReranker(RERANKER_MODEL, use_fp16=False)
+            device = _pick_device()
+            use_fp16 = device == "cuda"  # fp16 only on GPU
+            logger.info("Loading reranker %s on device=%s (fp16=%s)", RERANKER_MODEL, device, use_fp16)
+            self._model = FlagReranker(RERANKER_MODEL, use_fp16=use_fp16, devices=device)
         return self._model
 
     def rerank(
