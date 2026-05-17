@@ -72,19 +72,18 @@ class Embedders:
 
 
 class Reranker:
-    """Lazy bge-reranker-v2-m3."""
+    """Lazy bge-reranker-v2-m3 via sentence-transformers' CrossEncoder."""
 
     def __init__(self) -> None:
         self._model: Any | None = None
 
     def model(self) -> Any:
         if self._model is None:
-            from FlagEmbedding import FlagReranker
+            from sentence_transformers import CrossEncoder
 
             device = _pick_device()
-            use_fp16 = device == "cuda"  # fp16 only on GPU
-            logger.info("Loading reranker %s on device=%s (fp16=%s)", RERANKER_MODEL, device, use_fp16)
-            self._model = FlagReranker(RERANKER_MODEL, use_fp16=use_fp16, devices=device)
+            logger.info("Loading reranker %s on device=%s", RERANKER_MODEL, device)
+            self._model = CrossEncoder(RERANKER_MODEL, device=device)
         return self._model
 
     def rerank(
@@ -93,9 +92,7 @@ class Reranker:
         """Return [(original_index, score)] sorted by score desc, truncated to top_k."""
         if not candidates:
             return []
-        pairs = [[query, c] for c in candidates]
-        scores = self.model().compute_score(pairs, normalize=True)
-        if isinstance(scores, float):
-            scores = [scores]
-        ranked = sorted(enumerate(scores), key=lambda p: p[1], reverse=True)
-        return ranked[:top_k]
+        pairs = [(query, c) for c in candidates]
+        scores = self.model().predict(pairs, show_progress_bar=False)
+        ranked = sorted(enumerate(scores), key=lambda p: float(p[1]), reverse=True)
+        return [(idx, float(score)) for idx, score in ranked[:top_k]]
