@@ -50,7 +50,8 @@
   <!-- Per-question results table -->
   <div class="bg-white rounded-xl shadow p-6 overflow-x-auto">
     <h2 class="text-lg font-semibold text-neutral-800 mb-4">Per-Question Results</h2>
-    {% set questions = eval_data.get('questions', eval_data.get('results', [])) %}
+    {# In M12's schema, `results` holds the per-question objects; `questions` is just an ID list #}
+    {% set questions = eval_data.get('results') or eval_data.get('questions') or [] %}
     {% if questions %}
     <table class="w-full text-sm border border-neutral-200 rounded-lg overflow-hidden">
       <thead class="bg-neutral-100 text-neutral-600 font-semibold text-xs uppercase tracking-wide">
@@ -82,11 +83,13 @@
             </span>
           </td>
           <td>
-            {% set score = q.get('score', q.get('grade', None)) %}
+            {% set grade_obj = q.get('grade') %}
+            {% set score = grade_obj.get('score') if grade_obj is mapping else grade_obj %}
             {% if score is not none %}
             <span class="font-semibold {% if score >= 0.7 %}text-green-600{% elif score >= 0.4 %}text-amber-600{% else %}text-red-600{% endif %}">
               {{ "%.2f" | format(score | float) }}
             </span>
+            {% if grade_obj is mapping and grade_obj.get('pass') %}<span class="text-green-600 text-xs ml-1">✓</span>{% endif %}
             {% else %}
             <span class="text-neutral-400">—</span>
             {% endif %}
@@ -136,50 +139,71 @@
     v4: 'rgba(34,197,94,0.8)',
   };
 
-  // Try to get overall scores from eval_data.summary or compute from questions
+  // M12 eval-runner JSON shape:
+  //   data.aggregates = { v1: { overall_pass_rate, overall_mean_score, per_bucket: {bucket: rate} }, ... }
+  //   data.results    = [ { version, bucket, grade: {pass, score, detail}, ... }, ... ]
+  // Prefer aggregates if present; fall back to recomputing from results.
+
+  function _scoreOf(q) {
+    const g = q && q.grade;
+    if (g && typeof g === 'object' && g.score !== undefined) return Number(g.score) || 0;
+    return Number(q && q.score) || 0;
+  }
+
   function getOverallScores() {
-    if (data.summary) {
-      return data.summary;
+    if (data.aggregates) {
+      const out = {};
+      for (const [v, agg] of Object.entries(data.aggregates)) {
+        out[v] = Number(agg.overall_mean_score) || 0;
+      }
+      return out;
     }
-    // Compute from per-question results
-    const questions = data.questions || data.results || [];
+    const results = data.results || data.questions || [];
     const byVersion = {};
-    for (const q of questions) {
+    for (const q of results) {
       const v = q.version;
-      const s = parseFloat(q.score ?? q.grade ?? 0);
       if (!byVersion[v]) byVersion[v] = { total: 0, count: 0 };
-      byVersion[v].total += s;
+      byVersion[v].total += _scoreOf(q);
       byVersion[v].count += 1;
     }
-    const result = {};
+    const out = {};
     for (const [v, acc] of Object.entries(byVersion)) {
-      result[v] = acc.count ? acc.total / acc.count : 0;
+      out[v] = acc.count ? acc.total / acc.count : 0;
     }
-    return result;
+    return out;
   }
 
   function getBucketScores() {
-    if (data.bucket_summary) return data.bucket_summary;
-    const questions = data.questions || data.results || [];
-    // { bucket: { version: { total, count } } }
+    if (data.aggregates) {
+      // Pivot { v: {per_bucket: {b: rate}} } → { b: { v: rate } }
+      const out = {};
+      for (const [v, agg] of Object.entries(data.aggregates)) {
+        const perBucket = agg.per_bucket || {};
+        for (const [b, rate] of Object.entries(perBucket)) {
+          if (!out[b]) out[b] = {};
+          out[b][v] = Number(rate) || 0;
+        }
+      }
+      return out;
+    }
+    const results = data.results || data.questions || [];
     const acc = {};
-    for (const q of questions) {
+    for (const q of results) {
       const b = q.bucket || 'unknown';
       const v = q.version || 'unknown';
-      const s = parseFloat(q.score ?? q.grade ?? 0);
       if (!acc[b]) acc[b] = {};
       if (!acc[b][v]) acc[b][v] = { total: 0, count: 0 };
-      acc[b][v].total += s;
+      acc[b][v].total += _scoreOf(q);
       acc[b][v].count += 1;
     }
-    const result = {};
+    const out = {};
     for (const [b, vmap] of Object.entries(acc)) {
-      result[b] = {};
+      out[b] = {};
       for (const [v, a] of Object.entries(vmap)) {
-        result[b][v] = a.count ? a.total / a.count : 0;
+        out[b][v] = a.count ? a.total / a.count : 0;
       }
     }
-    return result;
+    return out;
   }
 
   // ---------------------------------------------------------------------------
