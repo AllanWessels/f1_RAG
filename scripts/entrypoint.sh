@@ -40,10 +40,12 @@ if [ ! -f /app/data/fia_regulations.jsonl ]; then
     python -m ingestion.regulations_etl || echo "[entrypoint] regulations_etl failed (continuing)"
 fi
 
-echo "[entrypoint] building Qdrant indexes (idempotent; skips populated collections) ..."
-python -m ingestion.build_indexes || {
-    echo "[entrypoint] index build failed; continuing anyway so /health stays up"
-}
+echo "[entrypoint] kicking off Qdrant indexing in the background (idempotent) ..."
+# Indexing 2k+ chunks with BGE-large on CPU takes ~30 min, but it's idempotent
+# and chunks land in Qdrant incrementally — so we don't block the HTTP server
+# on it. Until indexing catches up, retrievers will return whatever's already
+# indexed, which is correct behavior. Logs go to /tmp.
+nohup python -m ingestion.build_indexes >/tmp/build_indexes.log 2>&1 &
 
 echo "[entrypoint] starting uvicorn on 0.0.0.0:8000 ..."
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000
