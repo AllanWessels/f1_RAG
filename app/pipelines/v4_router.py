@@ -31,7 +31,7 @@ from app.tracing import traced
 logger = logging.getLogger(__name__)
 
 ROUTER_MODEL = "claude-haiku-4-5"
-MAX_STEPS = 4
+MAX_STEPS = 8
 
 # ---------------------------------------------------------------------------
 # Tool definitions sent to Haiku
@@ -45,17 +45,21 @@ TOOLS: list[dict] = [
             "SQLite database. Use this tool for hard, factual statistics: race winners, "
             "championship points, lap times, podium finishes, qualifying positions, pit-stop "
             "counts, etc.\n\n"
-            "Available tables and their key columns:\n"
-            "  races(raceId, season, round, name, date, circuitId)\n"
-            "  results(resultId, raceId, driverId, constructorId, position, points, "
-            "laps, milliseconds, fastestLapTime, grid, status)\n"
-            "  qualifying(qualifyId, raceId, driverId, constructorId, number, position, "
-            "q1, q2, q3)\n"
-            "  pitstops(raceId, driverId, stop, lap, time, duration, milliseconds)\n"
-            "  laptimes(raceId, driverId, lap, position, time, milliseconds)\n"
-            "  drivers(driverId, driverRef, forename, surname, nationality, dob)\n"
-            "  constructors(constructorId, constructorRef, name, nationality)\n"
-            "  circuits(circuitId, circuitRef, name, location, country)\n\n"
+            "Schema (snake_case columns — NOT Ergast-style camelCase):\n"
+            "  races(race_id, season, round, circuit_id, name, date)\n"
+            "  results(result_id, race_id, driver_id, constructor_id, grid, position, "
+            "position_text, position_order, points, laps, status)\n"
+            "  qualifying(qualifying_id, race_id, driver_id, constructor_id, number, "
+            "position, q1, q2, q3)\n"
+            "  pitstops(pitstop_id, race_id, driver_id, stop, lap, time_of_day, duration)\n"
+            "  laptimes(laptime_id, race_id, driver_id, lap, position, time)\n"
+            "  drivers(driver_id, code, number, forename, surname, dob, nationality)\n"
+            "  constructors(constructor_id, name, nationality)\n"
+            "  circuits(circuit_id, name, locality, country, lat, lng)\n\n"
+            "Example: SELECT d.forename || ' ' || d.surname AS winner "
+            "FROM results r JOIN races ra ON ra.race_id = r.race_id "
+            "JOIN drivers d ON d.driver_id = r.driver_id "
+            "WHERE ra.season = 2021 AND ra.name LIKE '%Brazil%' AND r.position = 1;\n\n"
             "Only SELECT or WITH statements are allowed. No INSERT/UPDATE/DELETE/DROP."
         ),
         "input_schema": {
