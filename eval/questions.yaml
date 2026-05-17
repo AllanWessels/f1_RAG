@@ -1,0 +1,471 @@
+version: 1
+questions:
+
+  # ── factual_stats ─────────────────────────────────────────────────────────
+
+  - id: "factual_stats_001"
+    bucket: "factual_stats"
+    question: "Who won the 2017 Australian Grand Prix?"
+    gold_answer: "Sebastian Vettel"
+    grading:
+      kind: "exact_match"
+      accept:
+        - "Sebastian Vettel"
+        - "Vettel"
+    expected_retriever: "query_stats"
+    notes: "Ferrari's first race win of 2017, round 1. Vettel led from mid-race after VSC period."
+
+  - id: "factual_stats_002"
+    bucket: "factual_stats"
+    question: "How many race wins did Max Verstappen score in the 2023 Formula 1 season?"
+    gold_answer: "19"
+    grading:
+      kind: "exact_match"
+      accept:
+        - "19"
+        - "nineteen"
+    expected_retriever: "query_stats"
+    notes: "Verstappen won 19 of 22 races in 2023, a record at the time."
+
+  - id: "factual_stats_003"
+    bucket: "factual_stats"
+    question: "Which constructor won the 2019 Formula 1 Constructors' Championship?"
+    gold_answer: "Mercedes"
+    grading:
+      kind: "exact_match"
+      accept:
+        - "Mercedes"
+        - "Mercedes-AMG Petronas"
+        - "Mercedes AMG"
+    expected_retriever: "query_stats"
+    notes: "Mercedes won their sixth consecutive constructors' title in 2019."
+
+  - id: "factual_stats_004"
+    bucket: "factual_stats"
+    question: "Who started from pole position at the 2022 Monaco Grand Prix?"
+    gold_answer: "Charles Leclerc"
+    grading:
+      kind: "exact_match"
+      accept:
+        - "Charles Leclerc"
+        - "Leclerc"
+    expected_retriever: "query_stats"
+    notes: "Leclerc took pole for Ferrari but did not start the race due to a gearbox issue."
+
+  - id: "factual_stats_005"
+    bucket: "factual_stats"
+    question: "How many Drivers' Championship titles did Lewis Hamilton win between 2014 and 2020 inclusive?"
+    gold_answer: "6"
+    grading:
+      kind: "exact_match"
+      accept:
+        - "6"
+        - "six"
+    expected_retriever: "query_stats"
+    notes: "Hamilton won in 2014, 2015, 2017, 2018, 2019, and 2020 — six titles in that window."
+
+  # ── multi_hop ─────────────────────────────────────────────────────────────
+
+  - id: "multi_hop_001"
+    bucket: "multi_hop"
+    question: "Who was Max Verstappen's teammate at Red Bull Racing during the season he won his first Drivers' Championship?"
+    gold_answer: "Sergio Perez"
+    grading:
+      kind: "exact_match"
+      accept:
+        - "Sergio Perez"
+        - "Perez"
+        - "Checo Perez"
+        - "Checo"
+    expected_retriever: "query_stats"
+    notes: >
+      Hop 1: find the year Verstappen first won the title (2021).
+      Hop 2: find his teammate at Red Bull that year (Sergio Perez).
+
+  - id: "multi_hop_002"
+    bucket: "multi_hop"
+    question: "Which driver scored the most race wins in the season that Ferrari last won the Constructors' Championship before 2014?"
+    gold_answer: "Felipe Massa"
+    grading:
+      kind: "exact_match"
+      accept:
+        - "Felipe Massa"
+        - "Massa"
+    expected_retriever: "query_stats"
+    notes: >
+      Hop 1: find the last Ferrari constructors' title before 2014 → 2008.
+      Hop 2: find the driver with most wins in 2008 → Felipe Massa with 6 wins
+      (Hamilton 5, Massa 6, Räikkönen 2, Kubica 1).
+
+  - id: "multi_hop_003"
+    bucket: "multi_hop"
+    question: "In which season did Nico Rosberg win his only Drivers' Championship, and how many race wins did he score that season?"
+    gold_answer: "2016, 9 wins"
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Identifies the season as 2016"
+        - "States Rosberg scored 9 race wins that season"
+        - "Does not confuse Rosberg's wins with Hamilton's wins in 2016"
+    expected_retriever: "query_stats"
+    notes: >
+      Hop 1: find the season Rosberg won the title → 2016.
+      Hop 2: count his wins that year → 9.
+
+  - id: "multi_hop_004"
+    bucket: "multi_hop"
+    question: "Which team did Daniel Ricciardo drive for in 2021, and what position did that team finish in the Constructors' Championship that year?"
+    gold_answer: "McLaren, 4th"
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Correctly identifies McLaren as Ricciardo's 2021 team"
+        - "States McLaren finished 4th in the 2021 Constructors' Championship"
+    expected_retriever: "query_stats"
+    notes: >
+      Hop 1: find Ricciardo's team in 2021 → McLaren.
+      Hop 2: find McLaren's constructors' finishing position in 2021 → 4th.
+
+  - id: "multi_hop_005"
+    bucket: "multi_hop"
+    question: "Who won the Drivers' Championship in the first season after Mercedes' run of eight consecutive Constructors' Championships ended?"
+    gold_answer: "Max Verstappen"
+    grading:
+      kind: "exact_match"
+      accept:
+        - "Max Verstappen"
+        - "Verstappen"
+    expected_retriever: "query_stats"
+    notes: >
+      Hop 1: find when Mercedes' 8-year CC streak ended → after 2021 season (they won 2014–2021).
+      Hop 2: find the drivers' champion in 2022 → Max Verstappen.
+
+  # ── narrative ─────────────────────────────────────────────────────────────
+
+  - id: "narrative_001"
+    bucket: "narrative"
+    question: "What was the controversy surrounding the final laps of the 2021 Abu Dhabi Grand Prix?"
+    gold_answer: >
+      With five laps remaining, a late safety car was deployed after Nicholas Latifi's crash.
+      Race director Michael Masi allowed only the five lapped cars between Verstappen and Hamilton
+      to unlap themselves — not all lapped cars — before ending the safety car period on the
+      penultimate lap. Verstappen, on fresh soft tyres, overtook Hamilton, on worn hard tyres, on
+      the final lap to win the race and the championship by the smallest margin. Mercedes protested
+      the result, citing incorrect application of Article 48.12 of the Sporting Regulations. Both
+      protests were rejected by the stewards. Masi was subsequently replaced as race director.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Mentions the late safety car caused by Latifi's crash"
+        - "Mentions that only some lapped cars (not all) were allowed to unlap themselves"
+        - "Mentions Verstappen passed Hamilton on the final lap on fresher tyres"
+        - "Mentions Mercedes' protest and its rejection"
+        - "Mentions race director Michael Masi's role in the decision or his subsequent removal"
+    expected_retriever: "search_narratives"
+    notes: "Core 2021 season controversy; Wikipedia race report covers this in detail."
+
+  - id: "narrative_002"
+    bucket: "narrative"
+    question: "What happened between the two Mercedes drivers at the start of the 2016 Spanish Grand Prix, and what was the consequence?"
+    gold_answer: >
+      At the race start, Hamilton and Rosberg made contact on the run to Turn 1. Hamilton moved
+      across to cover Rosberg, who had passed him off the start; they collided, both cars leaving
+      the track and retiring in the gravel. The double retirement gave Max Verstappen — making his
+      debut for Red Bull — a clear path to victory, winning his first Formula 1 race aged 18 years
+      and 228 days, becoming the youngest ever F1 race winner at that time.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Describes Hamilton and Rosberg colliding at or just after the start"
+        - "States both Mercedes cars retired as a result"
+        - "Mentions Max Verstappen won the race"
+        - "Notes it was Verstappen's debut race win or first F1 victory"
+    expected_retriever: "search_narratives"
+    notes: "Iconic 2016 moment; Wikipedia race report covers the collision and Verstappen's first win."
+
+  - id: "narrative_003"
+    bucket: "narrative"
+    question: "Describe what happened during the 2019 German Grand Prix at Hockenheim that made it so chaotic."
+    gold_answer: >
+      The 2019 German Grand Prix was characterised by heavy rain and multiple incidents.
+      Sebastian Vettel, leading at home for Ferrari, crashed into the barriers while lapping
+      a backmarker, handing the lead away. Multiple safety car periods and red flags punctuated
+      the race. Lewis Hamilton received a penalty for driving through the pit-entry signs but
+      recovered from last to finish on the podium. Daniil Kvyat won his first and only Formula 1
+      Grand Prix, with Nico Hülkenberg — at his home race — finishing second, the best result of
+      his career. The race saw numerous retirements and unexpected front-runners.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Mentions Vettel crashing while leading"
+        - "Mentions Daniil Kvyat winning the race"
+        - "Mentions the wet conditions / rain / safety cars"
+        - "Mentions Lewis Hamilton recovering from a penalty or rear-of-grid to a podium"
+    expected_retriever: "search_narratives"
+    notes: "Wild race; Wikipedia race report has full detail of incidents."
+
+  - id: "narrative_004"
+    bucket: "narrative"
+    question: "What incident during the 2023 Las Vegas Grand Prix practice session forced the session to be suspended early?"
+    gold_answer: >
+      During the first free practice session of the 2023 Las Vegas Grand Prix, a water valve cover
+      (drain cover) became dislodged from the circuit surface and struck Carlos Sainz's Ferrari,
+      severely damaging the car's floor. The session was red-flagged and subsequently cancelled after
+      only eight minutes. Sainz received a new floor and a power unit component, incurring a grid
+      penalty. The incident prompted extensive inspection of the street circuit surface before
+      subsequent sessions could continue.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Identifies a loose drain cover or water valve cover as the cause"
+        - "Mentions Carlos Sainz's car was damaged"
+        - "States the practice session was stopped / cancelled / red-flagged early"
+        - "Notes the inspection of the track surface or the impact on subsequent sessions"
+    expected_retriever: "search_narratives"
+    notes: "High-profile incident at the inaugural Las Vegas GP; well documented in Wikipedia race report."
+
+  - id: "narrative_005"
+    bucket: "narrative"
+    question: "What was significant about the 2014 Belgian Grand Prix in terms of the relationship between the two Mercedes drivers?"
+    gold_answer: >
+      On lap 2 at Spa-Francorchamps, Nico Rosberg drove into the back of Lewis Hamilton's car
+      through the high-speed Eau Rouge / Raidillon section while Hamilton was backing off behind
+      a slower car. Hamilton suffered a puncture and retired with damaged bodywork; Rosberg continued
+      but also retired later. Rosberg subsequently admitted he could have avoided the collision but
+      chose not to, reportedly to send a message that he would not back down in the championship
+      fight. The incident caused a major falling-out between the two drivers and required team
+      management intervention. Hamilton led the championship at the time; the collision proved
+      a flashpoint in one of F1's most intense intra-team rivalries.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Describes Rosberg hitting Hamilton at Spa, causing Hamilton's retirement"
+        - "Mentions that Rosberg later admitted he could have avoided the contact / chose not to"
+        - "Notes the context of an intense intra-team title rivalry"
+        - "Mentions the impact on the championship fight or team relationship"
+    expected_retriever: "search_narratives"
+    notes: "Defining moment of the 2014 Hamilton–Rosberg rivalry; covered in the Belgian GP race report."
+
+  # ── regulation ────────────────────────────────────────────────────────────
+
+  - id: "regulation_001"
+    bucket: "regulation"
+    question: "According to the 2026 FIA Technical Regulations, what is the minimum weight of a Formula 1 car (without driver)?"
+    gold_answer: "768 kg"
+    grading:
+      kind: "numeric"
+      value: 768
+      unit: "kg"
+      tolerance: 0
+      cite_article: "Technical Regulations Article 4.1"
+    expected_retriever: "search_regulations"
+    notes: "Art 4.1 of 2026 Technical Regs specifies minimum car weight without driver at 768 kg."
+
+  - id: "regulation_002"
+    bucket: "regulation"
+    question: "Under the 2026 FIA Sporting Regulations, what is the maximum number of Internal Combustion Engines (ICEs) a driver may use per season before incurring a grid penalty?"
+    gold_answer: "4"
+    grading:
+      kind: "numeric"
+      value: 4
+      unit: "ICEs"
+      tolerance: 0
+      cite_article: "Sporting Regulations Article 28"
+    expected_retriever: "search_regulations"
+    notes: "Art 28 of 2026 Sporting Regs covers power unit allocations; 4 ICEs permitted before penalty."
+
+  - id: "regulation_003"
+    bucket: "regulation"
+    question: "What does the 2026 FIA Financial Regulations set as the Cost Cap limit (in USD) for a top competitor for the 2026 season?"
+    gold_answer: "$135 million"
+    grading:
+      kind: "numeric"
+      value: 135000000
+      unit: "USD"
+      tolerance: 0
+      cite_article: "Financial Regulations Article 2"
+    expected_retriever: "search_regulations"
+    notes: "The 2026 Financial Regulations specify the competitive activities cost cap. Value to be confirmed against the actual document at runtime."
+
+  - id: "regulation_004"
+    bucket: "regulation"
+    question: "According to the 2026 FIA Technical Regulations, what is the maximum fuel load (in kilograms) permitted in an F1 car at the start of a race?"
+    gold_answer: "110 kg"
+    grading:
+      kind: "numeric"
+      value: 110
+      unit: "kg"
+      tolerance: 0
+      cite_article: "Technical Regulations Article 6.5"
+    expected_retriever: "search_regulations"
+    notes: "Maximum fuel quantity at race start; article reference to be confirmed against the 2026 Technical Regs."
+
+  - id: "regulation_005"
+    bucket: "regulation"
+    question: "Under the 2026 FIA Sporting Regulations, what is the minimum race distance (in km) required for a race to be classified as a full-points event?"
+    gold_answer: "75% of the scheduled race distance, or 2 laps minimum for a points-paying result"
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "States that 75% of the scheduled race distance must be completed for full points"
+        - "Or correctly describes the threshold at which reduced points are awarded (e.g. 2 laps minimum)"
+        - "References the Sporting Regulations as the source"
+    expected_retriever: "search_regulations"
+    notes: "Points allocation criteria for shortened races; detailed in Sporting Regs. Using llm_judge since the answer involves a threshold rule, not a single number."
+
+  # ── temporal_comparative ──────────────────────────────────────────────────
+
+  - id: "temporal_comparative_001"
+    bucket: "temporal_comparative"
+    question: "How did Red Bull Racing's win tally in the 2022 Formula 1 season compare to their win tally in the 2021 season?"
+    gold_answer: >
+      Red Bull won 17 races in 2022 compared to 11 in 2021 — a significant improvement of 6
+      additional wins. This improvement reflected Verstappen's dominant title defence in 2022,
+      whereas in 2021 the championship went to the final race.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "States Red Bull won more races in 2022 than in 2021"
+        - "Provides the correct 2022 win count (17) or indicates it was substantially higher"
+        - "Provides the correct 2021 win count (11) or a reasonable approximation"
+        - "Notes the direction of change (increase) correctly"
+    expected_retriever: "query_stats"
+    notes: "Straightforward cross-season comparison using race results data."
+
+  - id: "temporal_comparative_002"
+    bucket: "temporal_comparative"
+    question: "Did Ferrari win more races in 2017 or in 2018, and by how many?"
+    gold_answer: >
+      Ferrari won 5 races in 2017 and 6 races in 2018, so they won one more race in 2018.
+      However, the margin was small, and in both seasons Mercedes ultimately took the
+      Constructors' Championship.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Correctly identifies Ferrari won more races in 2018 than 2017"
+        - "States the 2017 win count (5) or a plausible value"
+        - "States the 2018 win count (6) or a plausible value"
+        - "Gives the correct direction: 2018 had more Ferrari wins than 2017"
+    expected_retriever: "query_stats"
+    notes: "Requires counting Ferrari wins by year from the results table."
+
+  - id: "temporal_comparative_003"
+    bucket: "temporal_comparative"
+    question: "Comparing the 2014 and 2016 seasons, which year did Lewis Hamilton score more Drivers' Championship points, and what was the points difference?"
+    gold_answer: >
+      Hamilton scored 384 points in 2014 and 380 points in 2016. He scored 4 more points in
+      2014 than in 2016, though he won the championship in both years. In 2015 he also won the
+      title, but comparing only 2014 vs 2016 as asked: 2014 was slightly higher.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Correctly identifies 2014 as the year Hamilton scored more points (or states the figures)"
+        - "Provides Hamilton's 2014 points total (approximately 384) or a close value"
+        - "Provides Hamilton's 2016 points total (approximately 380) or a close value"
+        - "States the difference correctly or approximately"
+    expected_retriever: "query_stats"
+    notes: "Season-level championship points comparison from the driver standings table."
+
+  - id: "temporal_comparative_004"
+    bucket: "temporal_comparative"
+    question: "How did the number of different race winners compare between the 2020 and 2024 Formula 1 seasons?"
+    gold_answer: >
+      In 2020, only 4 different drivers won races. In 2024, 6 different drivers won races —
+      a more competitive spread. This reflects the convergence of the field under the 2022
+      regulations that continued into 2024, compared to Mercedes' near-total dominance in 2020.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "States or implies 2024 had more different race winners than 2020"
+        - "Gives a plausible count for 2020 unique winners (3–5 range)"
+        - "Gives a plausible count for 2024 unique winners (5–8 range)"
+        - "Notes the direction: 2024 was more competitive or spread"
+    expected_retriever: "query_stats"
+    notes: "Counts distinct winners per season from race results. 2020: Hamilton, Verstappen, Bottas, Gasly (4). 2024: Verstappen, Norris, Sainz, Leclerc, Piastri, Russell (6)."
+
+  - id: "temporal_comparative_005"
+    bucket: "temporal_comparative"
+    question: "Which team scored more constructor points in the 2018 season compared to their 2019 season tally — Ferrari or Renault — and what does this suggest about their respective trajectories?"
+    gold_answer: >
+      Ferrari scored 571 points in 2018 and 504 points in 2019 — a decline of 67 points,
+      reflecting a step backwards in their championship challenge. Renault scored 122 points
+      in 2018 and 91 points in 2019 — also a decline, though from a lower base.
+      Both teams scored fewer points in 2019 than in 2018. Ferrari's trajectory was downward
+      heading into the 2019 season as Mercedes reasserted dominance.
+    grading:
+      kind: "llm_judge"
+      rubric:
+        - "Correctly states Ferrari's approximate 2018 points (around 571) and 2019 points (around 504)"
+        - "Correctly states both teams scored fewer points in 2019 than 2018, or correctly compares the two teams' trajectories"
+        - "Provides a directionally correct interpretation (Ferrari declined, Renault also declined or was relatively stable)"
+    expected_retriever: "query_stats"
+    notes: "Requires constructors' championship points from standings by year."
+
+  # ── adversarial ───────────────────────────────────────────────────────────
+
+  - id: "adversarial_001"
+    bucket: "adversarial"
+    question: "Who won the 2020 European Grand Prix?"
+    gold_answer: >
+      There was no European Grand Prix on the 2020 Formula 1 calendar. The 2020 season was
+      heavily disrupted by the COVID-19 pandemic. A race was held at the Nürburgring in 2020
+      under the name 'Eifel Grand Prix', not 'European Grand Prix'. The system should not
+      invent a winner for a race that did not exist by that name.
+    grading:
+      kind: "refusal"
+      reason: "no_such_race"
+    expected_retriever: "query_stats"
+    notes: "No 2020 European GP existed. Tests refusal / correct abstention behaviour."
+
+  - id: "adversarial_002"
+    bucket: "adversarial"
+    question: "What did Lewis Hamilton say to his engineer on the team radio at lap 47 of the 2022 Brazilian Grand Prix?"
+    gold_answer: >
+      Radio communications are not available in this system's data sources. The corpus contains
+      race statistics, Wikipedia race narratives, and FIA regulations — not verbatim team radio
+      transcripts. The system should decline to answer or acknowledge it cannot access this data.
+    grading:
+      kind: "refusal"
+      reason: "out_of_scope"
+    expected_retriever: "search_narratives"
+    notes: "Team radio transcripts are out of scope. Tests whether the system correctly refuses."
+
+  - id: "adversarial_003"
+    bucket: "adversarial"
+    question: "Who won the 2023 French Grand Prix?"
+    gold_answer: >
+      There was no French Grand Prix on the 2023 Formula 1 calendar. The French Grand Prix
+      was last held in 2022. The system should not fabricate a winner for a race that did not
+      take place.
+    grading:
+      kind: "refusal"
+      reason: "no_such_race"
+    expected_retriever: "query_stats"
+    notes: "France was dropped from the 2023 calendar. Tests refusal for a race that existed in prior years but not in the queried year."
+
+  - id: "adversarial_004"
+    bucket: "adversarial"
+    question: "What was Lewis Hamilton's fastest lap telemetry data during qualifying at the 2021 Monaco Grand Prix?"
+    gold_answer: >
+      Telemetry data — such as throttle, brake, steering and speed traces — is not available
+      in this system's data sources. The corpus covers race statistics, Wikipedia race reports,
+      and FIA regulations only. The system should refuse to provide telemetry information.
+    grading:
+      kind: "refusal"
+      reason: "out_of_scope"
+    expected_retriever: "query_stats"
+    notes: "Telemetry is explicitly out of scope. Tests correct data-scope refusal."
+
+  - id: "adversarial_005"
+    bucket: "adversarial"
+    question: "Who won the 2013 Australian Grand Prix?"
+    gold_answer: >
+      The data in this system covers only the modern era from 2014 onwards. The 2013 Australian
+      Grand Prix (won by Kimi Räikkönen) falls outside the coverage window. The system should
+      indicate it cannot answer questions about pre-2014 races rather than fabricating or
+      guessing an answer.
+    grading:
+      kind: "refusal"
+      reason: "out_of_scope"
+    expected_retriever: "query_stats"
+    notes: "Pre-2014 race — outside the corpus scope. Tests temporal out-of-scope refusal."
