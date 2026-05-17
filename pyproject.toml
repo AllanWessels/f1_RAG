@@ -1,0 +1,71 @@
+[project]
+name = "f1-rag"
+version = "0.1.0"
+description = "Formula 1 RAG with router tool-use and a real evaluation harness"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Allan Wessels" }]
+
+dependencies = [
+  # Web framework
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "jinja2>=3.1",
+  "python-multipart>=0.0.12",
+  "httpx>=0.27",
+
+  # Retrieval / embeddings
+  "qdrant-client[fastembed]>=1.12",
+  "sentence-transformers>=3.3",
+  "FlagEmbedding>=1.3",
+  "rank-bm25>=0.2.2",
+
+  # LLM + tracing
+  "anthropic>=0.40",
+  "langfuse>=2.55,<3",
+
+  # Eval
+  "ragas>=0.2",
+  "datasets>=3.0",
+
+  # Ingestion
+  "pypdf>=5.1",
+  "beautifulsoup4>=4.12",
+  "requests>=2.32",
+  "lxml>=5.3",
+
+  # Common
+  "pydantic>=2.9",
+  "pydantic-settings>=2.6",
+  "pyyaml>=6.0",
+  "tenacity>=9.0",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.8",
+  "mypy>=1.13",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app", "app.retrievers", "app.pipelines", "ingestion", "eval"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
