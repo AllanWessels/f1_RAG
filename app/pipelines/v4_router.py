@@ -26,6 +26,7 @@ import anthropic
 
 from app.pipeline import PipelineInput, PipelineResult, ToolCall
 from app.synth import ContextChunk, Synthesizer
+from app.tracing import traced
 
 logger = logging.getLogger(__name__)
 
@@ -364,6 +365,7 @@ class RouterPipeline:
     # Main run
     # ------------------------------------------------------------------
 
+    @traced(name="v4_router_run")
     def run(self, input: PipelineInput) -> PipelineResult:
         query = input.query
         top_k = input.top_k

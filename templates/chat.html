@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% set active = "chat" %}
+
+{% block title %}F1 RAG — Chat{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+
+  <!-- Header -->
+  <div>
+    <h1 class="text-2xl font-bold text-neutral-900">F1 Assistant</h1>
+    <p class="text-sm text-neutral-500 mt-1">Ask anything about Formula 1 — stats, race narratives, or 2026 regulations.</p>
+  </div>
+
+  <!-- Chat panel -->
+  <div
+    id="chat-panel"
+    class="flex flex-col gap-4 min-h-[200px]"
+  >
+    <!-- HTMX responses are prepended here -->
+    <div class="text-center text-neutral-400 text-sm italic py-8" id="empty-state">
+      Ask a question below to get started.
+    </div>
+  </div>
+
+  <!-- Input form -->
+  <div class="bg-white rounded-xl shadow p-4 sticky bottom-4">
+    <form
+      id="chat-form"
+      hx-post="/chat"
+      hx-target="#chat-panel"
+      hx-swap="afterbegin"
+      hx-indicator="#spinner"
+      class="flex flex-col gap-3"
+    >
+      <!-- Version selector -->
+      <div class="flex items-center gap-3">
+        <label for="version" class="text-sm font-medium text-neutral-700 whitespace-nowrap">Pipeline version:</label>
+        <select
+          id="version"
+          name="version"
+          class="text-sm border border-neutral-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+        >
+          {% for v in versions %}
+          <option value="{{ v }}" {% if v == 'v4' %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="top_k" value="5" />
+      </div>
+
+      <!-- Question input -->
+      <div class="flex gap-2">
+        <input
+          id="query"
+          name="query"
+          type="text"
+          placeholder="e.g. Who won the 2021 Brazilian GP?"
+          required
+          class="flex-1 border border-neutral-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+        />
+        <button
+          type="submit"
+          class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors flex items-center gap-2"
+        >
+          <span>Ask</span>
+          <span id="spinner" class="htmx-indicator">
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+  // Remove the empty-state placeholder once the first response arrives
+  document.getElementById('chat-form').addEventListener('htmx:afterSwap', function () {
+    const empty = document.getElementById('empty-state');
+    if (empty) empty.remove();
+    // Clear input after submit
+    document.getElementById('query').value = '';
+  });
+</script>
+{% endblock %}

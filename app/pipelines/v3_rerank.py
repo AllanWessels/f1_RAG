@@ -29,6 +29,7 @@ from qdrant_client.models import FusionQuery, Prefetch, SparseVector
 from app.embedding import Embedders, Reranker
 from app.pipeline import PipelineInput, PipelineResult
 from app.synth import ContextChunk, Synthesizer
+from app.tracing import traced
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ class RerankPipeline:
         self.synthesizer = synthesizer
         self.fetch_k = fetch_k
 
+    @traced(name="v3_rerank_run")
     def run(self, input: PipelineInput) -> PipelineResult:
         query = input.query
         top_k = input.top_k

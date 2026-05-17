@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from qdrant_client import QdrantClient, models
 
 from app.embedding import Embedders, Reranker
+from app.tracing import traced
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +180,7 @@ class RegulationsRetriever:
         self._embedders = embedders
         self._reranker = reranker
 
+    @traced(name="regulations_retriever_search")
     def search(
         self,
         query: str,

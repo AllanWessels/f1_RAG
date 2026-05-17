@@ -15,6 +15,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from app.tracing import traced
+
 # Default database location (relative to project root)
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "f1_stats.sqlite"
 DEFAULT_MAX_ROWS = 200
@@ -194,6 +196,7 @@ class StatsRetriever:
         self.db_path = db_path
         self.max_rows = max_rows
 
+    @traced(name="stats_retriever_run")
     def run(self, sql: str) -> StatsResult:
         """Execute a read-only SQL query and return a StatsResult."""
         return _execute_sql(sql=sql, db_path=self.db_path, max_rows=self.max_rows)

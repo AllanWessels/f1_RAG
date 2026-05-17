@@ -1,0 +1,111 @@
+{# HTMX partial — one Q+A exchange rendered into the chat panel #}
+
+{% if error %}
+{# Error card #}
+<div class="flex flex-col gap-2 mb-4">
+  <!-- Question bubble -->
+  <div class="self-end max-w-[80%] bg-red-600 text-white rounded-2xl rounded-tr-sm px-4 py-2 text-sm shadow">
+    {{ query }}
+  </div>
+  <!-- Error bubble -->
+  <div class="self-start max-w-[80%] bg-white border border-red-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow text-sm text-red-700">
+    <strong>Error:</strong> {{ error }}
+  </div>
+</div>
+
+{% else %}
+{# Normal result card #}
+<div class="flex flex-col gap-2 mb-6">
+
+  <!-- Question bubble (right-aligned) -->
+  <div class="self-end max-w-[80%] bg-red-600 text-white rounded-2xl rounded-tr-sm px-4 py-2 text-sm shadow">
+    {{ query }}
+  </div>
+
+  <!-- Answer card (left-aligned) -->
+  <div class="self-start max-w-[90%] bg-white rounded-2xl rounded-tl-sm shadow px-5 py-4 flex flex-col gap-3">
+
+    <!-- Metadata pills -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+        {{ result.version | upper }}
+      </span>
+      {% if result.refused %}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+        Refused / Insufficient context
+      </span>
+      {% endif %}
+      {% if result.citations %}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-600">
+        {{ result.citations | length }} citation{{ 's' if result.citations | length != 1 else '' }}
+      </span>
+      {% endif %}
+      {% if result.tool_calls %}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+        {{ result.tool_calls | length }} tool call{{ 's' if result.tool_calls | length != 1 else '' }}
+      </span>
+      {% endif %}
+    </div>
+
+    <!-- Answer text with inline citation markers -->
+    <div class="text-sm leading-relaxed text-neutral-800 whitespace-pre-wrap">
+      {{ result.answer | replace_citations }}
+    </div>
+
+    <!-- Tool calls (v4 only) -->
+    {% if result.tool_calls %}
+    <div class="border-t border-neutral-100 pt-3">
+      <p class="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">Router tool calls</p>
+      <div class="flex flex-col gap-2">
+        {% for tc in result.tool_calls %}
+        <details class="bg-neutral-50 rounded-lg border border-neutral-200 text-xs">
+          <summary class="px-3 py-2 flex items-center gap-2">
+            <span class="font-mono bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">{{ tc.name }}</span>
+            <span class="text-neutral-500 truncate">{{ tc.result_summary[:80] }}{% if tc.result_summary | length > 80 %}…{% endif %}</span>
+          </summary>
+          <div class="px-3 pb-3 pt-1 space-y-1">
+            {% if tc.arguments %}
+            <div>
+              <span class="font-semibold text-neutral-600">Arguments:</span>
+              <pre class="mt-1 bg-white border border-neutral-200 rounded p-2 overflow-x-auto text-[11px]">{{ tc.arguments | tojson(indent=2) }}</pre>
+            </div>
+            {% endif %}
+            {% if tc.result_summary %}
+            <div>
+              <span class="font-semibold text-neutral-600">Result:</span>
+              <pre class="mt-1 bg-white border border-neutral-200 rounded p-2 overflow-x-auto text-[11px] whitespace-pre-wrap">{{ tc.result_summary }}</pre>
+            </div>
+            {% endif %}
+          </div>
+        </details>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Citations footnotes -->
+    {% if result.retrieved_contexts %}
+    <div class="border-t border-neutral-100 pt-3">
+      <p class="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">Sources</p>
+      <div class="flex flex-col gap-1.5">
+        {% for ctx in result.retrieved_contexts %}
+        <details class="bg-neutral-50 rounded-lg border border-neutral-200 text-xs" id="cite-{{ ctx.cite_id }}">
+          <summary class="px-3 py-2 flex items-center gap-2">
+            <span class="font-mono bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded">{{ ctx.cite_id }}</span>
+            <span class="text-neutral-500">{{ ctx.source }}</span>
+            {% if ctx.metadata %}
+            <span class="text-neutral-400 truncate">
+              {% for k, v in ctx.metadata.items() %}{% if not loop.first %} · {% endif %}{{ k }}={{ v }}{% endfor %}
+            </span>
+            {% endif %}
+          </summary>
+          <div class="px-3 pb-3 pt-1 text-[11px] text-neutral-700 whitespace-pre-wrap leading-relaxed">{{ ctx.text }}</div>
+        </details>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endif %}

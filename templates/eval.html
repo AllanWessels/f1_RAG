@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% set active = "eval" %}
+
+{% block title %}F1 RAG — Eval Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  table { border-collapse: collapse; }
+  th, td { padding: 0.5rem 0.75rem; text-align: left; }
+  tr:nth-child(even) td { background: #f9fafb; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-8">
+
+  <!-- Header -->
+  <div>
+    <h1 class="text-2xl font-bold text-neutral-900">Eval Dashboard</h1>
+    <p class="text-sm text-neutral-500 mt-1">Comparison of v1–v4 pipeline performance across 30 questions and 6 buckets.</p>
+  </div>
+
+  {% if eval_data is none %}
+  {# No results yet #}
+  <div class="bg-white rounded-xl shadow p-8 text-center">
+    <p class="text-neutral-500 text-lg">no eval results yet</p>
+    <p class="text-neutral-400 text-sm mt-2">
+      Run <code class="bg-neutral-100 px-1 rounded">python -m eval.runner</code> to generate results.
+    </p>
+  </div>
+
+  {% else %}
+
+  <!-- Overall scores per version -->
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="text-lg font-semibold text-neutral-800 mb-4">Overall Scores by Version</h2>
+    <div class="relative h-64">
+      <canvas id="overallChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Per-bucket breakdown -->
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="text-lg font-semibold text-neutral-800 mb-4">Per-Bucket Breakdown</h2>
+    <div class="relative h-72">
+      <canvas id="bucketChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Per-question results table -->
+  <div class="bg-white rounded-xl shadow p-6 overflow-x-auto">
+    <h2 class="text-lg font-semibold text-neutral-800 mb-4">Per-Question Results</h2>
+    {% set questions = eval_data.get('questions', eval_data.get('results', [])) %}
+    {% if questions %}
+    <table class="w-full text-sm border border-neutral-200 rounded-lg overflow-hidden">
+      <thead class="bg-neutral-100 text-neutral-600 font-semibold text-xs uppercase tracking-wide">
+        <tr>
+          <th class="border-b border-neutral-200">#</th>
+          <th class="border-b border-neutral-200">Bucket</th>
+          <th class="border-b border-neutral-200">Question</th>
+          <th class="border-b border-neutral-200">Version</th>
+          <th class="border-b border-neutral-200">Score</th>
+          <th class="border-b border-neutral-200">Refused</th>
+          <th class="border-b border-neutral-200">Trace</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in questions %}
+        <tr class="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
+          <td class="text-neutral-400">{{ loop.index }}</td>
+          <td>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700">
+              {{ q.get('bucket', '—') }}
+            </span>
+          </td>
+          <td class="max-w-xs truncate" title="{{ q.get('question', q.get('query', '—')) }}">
+            {{ q.get('question', q.get('query', '—')) }}
+          </td>
+          <td>
+            <span class="font-mono text-xs bg-red-50 text-red-700 px-1.5 py-0.5 rounded">
+              {{ q.get('version', '—') }}
+            </span>
+          </td>
+          <td>
+            {% set score = q.get('score', q.get('grade', None)) %}
+            {% if score is not none %}
+            <span class="font-semibold {% if score >= 0.7 %}text-green-600{% elif score >= 0.4 %}text-amber-600{% else %}text-red-600{% endif %}">
+              {{ "%.2f" | format(score | float) }}
+            </span>
+            {% else %}
+            <span class="text-neutral-400">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if q.get('refused') %}
+            <span class="text-amber-600 font-medium">Yes</span>
+            {% else %}
+            <span class="text-neutral-400">No</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if q.get('trace_url') %}
+            <a href="{{ q.trace_url }}" target="_blank" rel="noopener"
+               class="text-blue-600 hover:text-blue-800 text-xs underline">
+              Trace →
+            </a>
+            {% else %}
+            <span class="text-neutral-400">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-neutral-500 text-sm">No per-question data found in results file.</p>
+    {% endif %}
+  </div>
+
+  {% endif %}
+
+</div>
+
+{% if eval_data is not none %}
+<script>
+(function () {
+  const data = {{ eval_data | tojson }};
+
+  // ---------------------------------------------------------------------------
+  // Helper: extract version summary scores
+  // ---------------------------------------------------------------------------
+  const VERSION_COLORS = {
+    v1: 'rgba(239,68,68,0.8)',
+    v2: 'rgba(249,115,22,0.8)',
+    v3: 'rgba(234,179,8,0.8)',
+    v4: 'rgba(34,197,94,0.8)',
+  };
+
+  // Try to get overall scores from eval_data.summary or compute from questions
+  function getOverallScores() {
+    if (data.summary) {
+      return data.summary;
+    }
+    // Compute from per-question results
+    const questions = data.questions || data.results || [];
+    const byVersion = {};
+    for (const q of questions) {
+      const v = q.version;
+      const s = parseFloat(q.score ?? q.grade ?? 0);
+      if (!byVersion[v]) byVersion[v] = { total: 0, count: 0 };
+      byVersion[v].total += s;
+      byVersion[v].count += 1;
+    }
+    const result = {};
+    for (const [v, acc] of Object.entries(byVersion)) {
+      result[v] = acc.count ? acc.total / acc.count : 0;
+    }
+    return result;
+  }
+
+  function getBucketScores() {
+    if (data.bucket_summary) return data.bucket_summary;
+    const questions = data.questions || data.results || [];
+    // { bucket: { version: { total, count } } }
+    const acc = {};
+    for (const q of questions) {
+      const b = q.bucket || 'unknown';
+      const v = q.version || 'unknown';
+      const s = parseFloat(q.score ?? q.grade ?? 0);
+      if (!acc[b]) acc[b] = {};
+      if (!acc[b][v]) acc[b][v] = { total: 0, count: 0 };
+      acc[b][v].total += s;
+      acc[b][v].count += 1;
+    }
+    const result = {};
+    for (const [b, vmap] of Object.entries(acc)) {
+      result[b] = {};
+      for (const [v, a] of Object.entries(vmap)) {
+        result[b][v] = a.count ? a.total / a.count : 0;
+      }
+    }
+    return result;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Chart 1: Overall scores bar chart
+  // ---------------------------------------------------------------------------
+  const overallScores = getOverallScores();
+  const versions = Object.keys(overallScores);
+  if (versions.length > 0) {
+    const ctx1 = document.getElementById('overallChart').getContext('2d');
+    new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: versions,
+        datasets: [{
+          label: 'Mean Score',
+          data: versions.map(v => overallScores[v]),
+          backgroundColor: versions.map(v => VERSION_COLORS[v] || 'rgba(107,114,128,0.8)'),
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 1,
+            ticks: { format: { style: 'percent' }, callback: v => (v * 100).toFixed(0) + '%' },
+            grid: { color: 'rgba(0,0,0,0.05)' },
+          },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Chart 2: Per-bucket grouped bar chart
+  // ---------------------------------------------------------------------------
+  const bucketScores = getBucketScores();
+  const buckets = Object.keys(bucketScores);
+  const allVersions = [...new Set(
+    Object.values(bucketScores).flatMap(v => Object.keys(v))
+  )].sort();
+
+  if (buckets.length > 0) {
+    const ctx2 = document.getElementById('bucketChart').getContext('2d');
+    const datasets = allVersions.map(v => ({
+      label: v.toUpperCase(),
+      data: buckets.map(b => (bucketScores[b][v] ?? 0)),
+      backgroundColor: VERSION_COLORS[v] || 'rgba(107,114,128,0.7)',
+      borderRadius: 3,
+    }));
+    new Chart(ctx2, {
+      type: 'bar',
+      data: { labels: buckets, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 14, font: { size: 12 } } },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 1,
+            ticks: { callback: v => (v * 100).toFixed(0) + '%' },
+            grid: { color: 'rgba(0,0,0,0.05)' },
+          },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+  }
+})();
+</script>
+{% endif %}
+
+{% endblock %}

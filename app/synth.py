@@ -16,6 +16,8 @@ from collections.abc import Iterable
 import anthropic
 from pydantic import BaseModel, Field
 
+from app.tracing import traced
+
 logger = logging.getLogger(__name__)
 
 SYNTH_MODEL = "claude-sonnet-4-6"
@@ -89,6 +91,7 @@ class Synthesizer:
         self.model = model
         self.max_tokens = max_tokens
 
+    @traced(name="synthesize", observation_type="generation")
     def synthesize(
         self, query: str, contexts: list[ContextChunk]
     ) -> SynthResult:

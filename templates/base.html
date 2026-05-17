@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}F1 RAG{% endblock %}</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* Citation disclosure styling */
+    details summary { cursor: pointer; }
+    details[open] summary { font-weight: 600; }
+    .htmx-indicator { opacity: 0; transition: opacity 200ms; }
+    .htmx-request .htmx-indicator { opacity: 1; }
+    .htmx-request.htmx-indicator { opacity: 1; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-neutral-100 min-h-screen font-sans text-neutral-800">
+
+  <!-- Top nav -->
+  <header class="bg-white border-b border-neutral-200 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-6">
+      <span class="text-red-600 font-bold text-xl tracking-tight">F1 RAG</span>
+      <nav class="flex gap-4 text-sm font-medium">
+        <a href="/" class="hover:text-red-600 transition-colors {% if active == 'chat' %}text-red-600 border-b-2 border-red-600{% endif %}">Chat</a>
+        <a href="/eval" class="hover:text-red-600 transition-colors {% if active == 'eval' %}text-red-600 border-b-2 border-red-600{% endif %}">Eval Dashboard</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

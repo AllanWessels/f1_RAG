@@ -19,6 +19,7 @@ from qdrant_client import QdrantClient
 from app.embedding import Embedders
 from app.pipeline import PipelineInput, PipelineResult
 from app.synth import ContextChunk, Synthesizer
+from app.tracing import traced
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ class NaivePipeline:
         self.embedders = embedders
         self.synthesizer = synthesizer
 
+    @traced(name="v1_naive_run")
     def run(self, input: PipelineInput) -> PipelineResult:
         query = input.query
         top_k = input.top_k

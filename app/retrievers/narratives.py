@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from qdrant_client import QdrantClient, models
 
 from app.embedding import Embedders, Reranker
+from app.tracing import traced
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,7 @@ class NarrativesRetriever:
     # Core search
     # ------------------------------------------------------------------
 
+    @traced(name="narratives_retriever_search")
     def search(
         self,
         query: str,
