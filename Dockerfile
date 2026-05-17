@@ -29,10 +29,13 @@ COPY eval ./eval
 
 RUN mkdir -p /build/data
 
-# Ingestion ETLs (no-ops in M1; populated in M2-M4)
-# RUN python -m ingestion.stats_etl
-# RUN python -m ingestion.wikipedia_etl
-# RUN python -m ingestion.regulations_etl
+# Ingestion ETLs — bake the three corpora into the image so the runtime
+# container starts with stats SQLite, Wikipedia JSONL, and FIA PDF chunks
+# already on disk. Qdrant indexing is deferred to container start
+# (Qdrant isn't running during image build).
+RUN python -m ingestion.stats_etl
+RUN python -m ingestion.wikipedia_etl
+RUN python -m ingestion.regulations_etl
 
 
 #############################
@@ -60,8 +63,9 @@ COPY ingestion ./ingestion
 COPY eval ./eval
 COPY templates ./templates
 COPY static ./static
+COPY scripts ./scripts
 COPY --from=builder /build/data ./data
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
