@@ -49,7 +49,8 @@ htmlcov/
 
 # Project artifacts
 eval/results/
-data/
+data/*
+!data/.gitkeep
 *.sqlite
 *.sqlite-journal
 *.db
