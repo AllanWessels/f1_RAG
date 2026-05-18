@@ -223,13 +223,67 @@ Tracing is a transparent no-op if the Langfuse keys are unset, so unit tests and
 
 ## GPU acceleration
 
-The host venv auto-uses CUDA if `torch.cuda.is_available()` is true. Indexing on a single NVIDIA RTX 5080 finishes ~4k chunks in ~3 minutes (≈50× faster than CPU). To rebuild the Qdrant indexes from the host (uses GPU, hits the dockerized Qdrant):
+Two valid paths to get GPU-accelerated embedding/reranking:
+
+### Option A — GPU inside the container (recommended for NVIDIA hosts)
+
+The image ships with **CUDA-enabled PyTorch** (cu121 wheel from the PyTorch wheel index). The `docker-compose.yml` declares an NVIDIA GPU reservation for the `api` service, so the container uses the host GPU automatically once `nvidia-container-toolkit` is installed.
+
+#### 1. Install nvidia-container-toolkit (Debian/Ubuntu)
 
 ```bash
-QDRANT_URL=http://localhost:6333 make index    # or: ... python -m ingestion.build_indexes --force
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+  | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+  | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+  | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
 ```
 
-For GPU **inside** docker compose, you also need [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/) on the host and CUDA-enabled PyTorch in the image; the default Dockerfile uses CPU torch so the in-container indexing path is slow. The recommended workflow is: bring up the compose stack, then run `make index` from the host once for a fast cold start.
+For non-Debian distributions see the [official install guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+
+#### 2. Verify GPU passthrough before bringing the stack up
+
+```bash
+make gpu-check
+```
+
+This runs `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` and exits 0 if GPU passthrough is working.
+
+#### 3. Bring up the stack normally
+
+```bash
+docker compose up --build
+```
+
+#### 4. Verify GPU visibility inside the running container
+
+```bash
+docker compose exec api python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+#### Image size note
+
+Adding the cu121 PyTorch wheel increases the image from ~2 GB to roughly 3–4 GB (~2.5 GB for the wheel alone). The first `docker compose up --build` will be slower on a fresh pull; subsequent builds are cached.
+
+#### Graceful CPU fallback
+
+On hosts without `nvidia-container-toolkit`, Docker Compose prints a warning that the device reservation cannot be satisfied but **still starts the container**. The api service falls back to CPU automatically via `app.embedding._pick_device`. No flags in the compose file hard-require GPU.
+
+### Option B — GPU from the host venv (fast path, no toolkit needed)
+
+The host venv auto-uses CUDA if `torch.cuda.is_available()` is true. Indexing on a single NVIDIA RTX 5080 finishes ~4k chunks in ~3 minutes (≈50× faster than CPU). Bring up the compose stack first (so Qdrant is reachable), then run indexing from the host:
+
+```bash
+QDRANT_URL=http://localhost:6333 make index    # or: python -m ingestion.build_indexes --force
+```
+
+This is a good choice when you want GPU speed without installing the container toolkit, or when iterating on ingestion code outside Docker.
 
 ## How it was built
 

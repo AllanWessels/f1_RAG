@@ -19,12 +19,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Install CUDA-enabled PyTorch before the editable install so that
+# pip install -e . below sees torch already satisfied and does NOT
+# pull the CPU-only wheel from PyPI.  The cu121 wheel bundles
+# libcudart, so we don't need an nvidia/cuda base image; the same
+# image still works on CPU-only hosts because app/embedding.py falls
+# back to cpu when torch.cuda.is_available() returns False.
+RUN pip install --upgrade pip \
+    && pip install torch --index-url https://download.pytorch.org/whl/cu121
+
 COPY pyproject.toml README.md ./
 COPY ingestion ./ingestion
 COPY app ./app
 COPY eval ./eval
 
-RUN pip install --upgrade pip && pip install -e .
+RUN pip install -e .
 RUN mkdir -p /build/data
 
 # Bring the three corpora into the image. Two paths:

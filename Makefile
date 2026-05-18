@@ -49,6 +49,10 @@ down: ## Stop and remove containers
 logs: ## Tail compose logs
 	docker compose logs -f --tail=200
 
+.PHONY: gpu-check
+gpu-check: ## Verify nvidia-container-toolkit + GPU passthrough work
+	@bash scripts/gpu-check.sh
+
 # ---------------------------------------------------------------------------
 # Eval
 # ---------------------------------------------------------------------------
