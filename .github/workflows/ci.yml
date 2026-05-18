@@ -45,14 +45,17 @@ jobs:
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Assert image size under 6 GB
+      - name: Assert image size under 10 GB
         run: |
+          # cu130 torch + sentence-transformers + reranker + corpora puts
+          # the runtime image at ~9.5 GB. 10 GB gives us headroom to catch
+          # regressions without false positives.
           size_bytes=$(docker image inspect f1-rag:ci --format '{{.Size}}')
           size_gb=$(echo "scale=2; $size_bytes / 1073741824" | bc)
           echo "Image size: ${size_gb} GB (${size_bytes} bytes)"
-          limit_bytes=6442450944  # 6 * 1024^3
+          limit_bytes=10737418240  # 10 * 1024^3
           if [ "$size_bytes" -gt "$limit_bytes" ]; then
-            echo "ERROR: image exceeds 6 GB limit (${size_gb} GB)" >&2
+            echo "ERROR: image exceeds 10 GB limit (${size_gb} GB)" >&2
             exit 1
           fi
-          echo "OK: image is within the 6 GB limit."
+          echo "OK: image is within the 10 GB limit."

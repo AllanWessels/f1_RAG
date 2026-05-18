@@ -21,12 +21,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install CUDA-enabled PyTorch before the editable install so that
 # pip install -e . below sees torch already satisfied and does NOT
-# pull the CPU-only wheel from PyPI.  The cu121 wheel bundles
-# libcudart, so we don't need an nvidia/cuda base image; the same
-# image still works on CPU-only hosts because app/embedding.py falls
-# back to cpu when torch.cuda.is_available() returns False.
+# pull the CPU-only wheel from PyPI.  We use the cu130 wheel so the
+# image supports modern NVIDIA architectures including Blackwell
+# (sm_120, e.g. RTX 50-series); cu121 only supports up to sm_90.  The
+# wheel bundles libcudart so we don't need an nvidia/cuda base image;
+# the same image still works on CPU-only hosts because
+# app/embedding.py falls back to cpu when torch.cuda.is_available()
+# returns False.
 RUN pip install --upgrade pip \
-    && pip install torch --index-url https://download.pytorch.org/whl/cu121
+    && pip install torch --index-url https://download.pytorch.org/whl/cu130
 
 COPY pyproject.toml README.md ./
 COPY ingestion ./ingestion
