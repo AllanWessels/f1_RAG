@@ -1,6 +1,6 @@
 # F1 RAG
 
-A Formula 1 question-answering system with **four progressively more sophisticated retrieval architectures** (`v1` naive → `v2` hybrid → `v3` +rerank → `v4` +router) and a real per-bucket evaluation harness comparing them across 30 frozen questions.
+A Formula 1 question-answering system with **four progressively more sophisticated retrieval architectures** (`v1` naive → `v2` hybrid → `v3` +rerank → `v4` +router) and a real per-bucket evaluation harness comparing them across 30 frozen questions. As a demonstration of RAG architecture -> performance metrics.
 
 The whole system is containerized: `docker compose up --build` and you have the chat UI, the eval dashboard, and self-hosted Langfuse tracing.
 
